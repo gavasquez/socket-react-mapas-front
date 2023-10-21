@@ -29,24 +29,27 @@ export const useMapBox = (puntoInicial) => {
     const [coords, setCoords] = useState(puntoInicial);
 
     //* Funcion para agregar marcadores
-    const agregarMarcador = useCallback((ev) => {
-        const { lng, lat } = ev.lngLat;
+    const agregarMarcador = useCallback((ev, id) => {
+        const { lng, lat } = ev.lngLat || ev;
         //* Crear el Marcador
         const marker = new mapboxgl.Marker();
         //* Crear un id al marcador con uuid
-        marker.id = v4(); //TODO: Si el marcador ya tiene id
+        //TODO: Si el marcador ya tiene id
+        marker.id = id ?? v4();
         //* Asignamos la lng y lat, despues agregamos al mapa con addTo y ponemos el setDraggable en true para que se puede mover el marcador
         marker.setLngLat([lng, lat]).addTo(mapa.current).setDraggable(true);
         marcadores.current[marker.id] = marker;
         // TODO Si el marcador tiene id no se tiene que emitir
-        //* next para enviar el siguiente valor
-        nuevoMarcador.current.next(
-            {
-                id: marker.id,
-                lng,
-                lat
-            }
-        );
+        if (!id) {
+            //* next para enviar el siguiente valor
+            nuevoMarcador.current.next(
+                {
+                    id: marker.id,
+                    lng,
+                    lat
+                }
+            );
+        }
         // Escuchar movimientos del Marcador drag
         marker.on('drag', (ev) => {
             const { id } = ev.target;
@@ -60,6 +63,12 @@ export const useMapBox = (puntoInicial) => {
             });
         });
     }, []);
+
+    //* Funcion para actualizar la ubicación del marcador
+    const actualizarPosicion = useCallback((marcador) => {
+        marcadores.current[marcador.id].setLngLat([marcador.lng, marcador.lat]);
+    }, [],);
+
 
 
     useEffect(() => {
@@ -96,6 +105,7 @@ export const useMapBox = (puntoInicial) => {
         marcadores,
         //
         agregarMarcador,
+        actualizarPosicion,
         nuevoMarcador$: nuevoMarcador.current,
         movimientoMarcador$: movimientoMarcador.current,
     }
